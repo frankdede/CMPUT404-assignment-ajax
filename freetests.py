@@ -52,6 +52,7 @@ class ServerTestCase(unittest.TestCase):
     def testUpdate(self):
         v = 'T'+str(random.randint(1,1000000))
         r = self.app.get(('/entity/%s' % v))
+
         self.assertTrue(r.status_code == 200, "Code not 200!")
         self.assertTrue(r.data == '{}', "Not empty? %s" % r.data)
         d = {'x':2, 'y':3}

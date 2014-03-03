@@ -22,7 +22,7 @@
 
 
 import flask
-from flask import Flask, request,url_for,redirect
+from flask import Flask, request,url_for,redirect,Response
 import json
 app = Flask(__name__)
 app.debug = True
@@ -82,18 +82,22 @@ def modify(entity):
     v = flask_post_json()
     myWorld.set( entity,v)
     e = myWorld.get(entity)
-    return flask.jsonify(e)
+    return flask.jsonify(e),200
+
+@app.route("/entity/<entity>")
+def getEntity(entity):
+    return flask.jsonify(myWorld.get(entity)), 200
 
 @app.route("/world", methods=['GET','PUT'])
 def getWorld():
     e = myWorld.world()
-    return flask.jsonify(e)
+    return flask.jsonify(e),200
 
 @app.route("/clear", methods=['POST','GET'])
 def clear():
     '''Clear the world out!'''
     myWorld.clear()
-    return "Cleared"
+    return Response("<h1>Cleared</h1>", status=200, mimetype="text/html")
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host='0.0.0.0')
