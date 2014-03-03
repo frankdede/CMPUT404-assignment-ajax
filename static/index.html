@@ -25,6 +25,8 @@
   <body bgcolor="black" height="100%" width="100%"> 
     <canvas id="c" width="100%" height="100%" style="-webkit-tap-highlight-color: transparent;"></canvas> 
     <script>
+
+var id = "L"+Math.floor(20000000*Math.random());
 var canvas = document.getElementById('c');
 var host = window.location.host;
 var context = canvas.getContext("2d");
@@ -34,12 +36,25 @@ var H = canvas.height = window.innerHeight-50;
 
 function sendJSONXMLHTTPRequest(url, objects, callback) {
     var xhr = new XMLHttpRequest();
+
+    xhr.open(objects["method"]||'GET',url);
+
+    if(objects["content-type"]){
+        xhr.overrideMimeType(objects["content-type"]);
+    }
+
+    if(objects["accept"]){
+        xhr.setRequestHeader('Accept',objects["accept"]);
+    }
+
     xhr.onreadystatechange = function () {
         if (xhr.readyState==4) {
             try {
                 if (xhr.status==200) {
-                    //XXX: parse some JSON from the request!
-                    //XXX: Pass the data to the callback!
+                    var jsonObj = JSON.parse(xhr.responseText);
+                    if(callback != null){
+                        callback(jsonObj);
+                    }
                 }
             } 
             catch(e) {
@@ -47,13 +62,38 @@ function sendJSONXMLHTTPRequest(url, objects, callback) {
             }
         }
     };
-    //XXX: POST to a URL
-    //XXX: set the mimetype and the accept headers!
-    // Remember to use application/json !
+ 
+    xhr.send(objects["body"] || null);
 }
 
+function checkForUpdate(){
+    sendJSONXMLHTTPRequest("http://"+host+"/world",{
+            "method":"GET",
+            "content-type":"application/json",
+            "accept":"application/json"},
+            function(objs){
+                if(objs){
+                   updateWorld(objs);    
+                }
+            }
+    );
+}
+
+function modifyWorld(entity,data){
+    sendJSONXMLHTTPRequest("http://"+host+"/entity/"+entity,
+    {"method":"PUT","content-type":"application/json","body":JSON.stringify(data)},
+    function(objs){
+       //nothing 
+    });
+}
 
 world = {};
+
+function updateWorld(objs){
+    for(var key in objs){
+        world[key] = objs[key];
+    }
+}
 
 //XXX: TODO Make this prettier!
 function drawCircle(context,entity) {
@@ -137,6 +177,7 @@ function getPosition(e) {
 function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
+    modifyWorld(entity,data);
     //XXX: Send a XHTML Request that updates the entity you just  modified!
 
 }
@@ -144,7 +185,7 @@ function addEntity(entity, data) {
 var counter = 0;
 function addEntityWithoutName(data) {
     //var name = "X"+Math.floor((Math.random()*100)+1);
-    var name = "X"+(counter++)%100;
+    var name = id+(counter++)%100;
     addEntity(name,data);
 }
 
@@ -186,7 +227,7 @@ mouse = (function() {
                 var y = pos[1];
 	        self.clicked = 1;
                 self.callListeners(self.mousedowners,x,y,self.clicked,e);
-                //addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+                addEntityWithoutName({'x':x,'y':y,'colour':'red'});
             }
         },
         mouseup: function(e) {
@@ -200,7 +241,7 @@ mouse = (function() {
 	        self.clicked = 0;
                 self.selected = -1;
                 self.callListeners(self.mouseuppers,x,y,self.clicked,e);
-                //addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+                addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
             }
         },
         touchstart: function(e) {
@@ -262,14 +303,13 @@ mouse.mousedraggers.push(function(x,y,clicked,e) {
 
 function update() {
     //XXX: TODO Get the world from the webservice using a XMLHTTPRequest
+    checkForUpdate();
     drawFrame();
+    drawNextFrame();
 }
 
 // 30 frames per second
 setInterval( update, 1000/30.0);
-
-
-
     </script>
 </body>
 </html>
